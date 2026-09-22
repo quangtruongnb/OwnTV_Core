@@ -22,8 +22,16 @@ class LauncherIntegrationRepository(
     suspend fun publishEpisodeProgress(profileId: Long, episodeId: Long, positionMs: Long, durationMs: Long) =
         tvHomeRepository.publishEpisodeProgress(profileId, episodeId, positionMs, durationMs)
 
+    suspend fun refreshFavoriteLive(profileId: Long, allowBrowsableRequest: Boolean = false) =
+        tvHomeRepository.refreshFavoriteLive(profileId, allowBrowsableRequest)
+
+    /**
+     * Compatibility entry point for hosts built before the launcher row changed from recent live
+     * channels to favorite live channels.
+     */
+    @Deprecated("The Android TV row now shows favorite live channels; use refreshFavoriteLive.")
     suspend fun refreshRecentLive(profileId: Long, allowBrowsableRequest: Boolean = false) =
-        tvHomeRepository.refreshRecentLive(profileId, allowBrowsableRequest)
+        refreshFavoriteLive(profileId, allowBrowsableRequest)
 
     suspend fun resolveLaunch(profileId: Long, deepLink: LauncherDeepLink): LauncherLaunch? =
         resolver.resolveLaunch(profileId, deepLink)

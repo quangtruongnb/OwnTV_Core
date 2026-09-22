@@ -836,15 +836,15 @@
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	DELETE FROM channels WHERE sourceId = :sourceId
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	DELETE FROM channels WHERE sourceId = :sourceId AND remoteId IN (:remoteIds)
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	DELETE FROM channels WHERE sourceId = :sourceId AND remoteId IS NULL
-4	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	INNER JOIN favorites f ON f.itemId = c.id AND f.mediaType = 'LIVE'
+5	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	INNER JOIN favorites f ON f.itemId = c.id AND f.mediaType = 'LIVE'
 4	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	INNER JOIN watch_history h ON h.itemId = c.id AND h.mediaType = 'LIVE'
 2	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	LEFT JOIN categories cat ON c.categoryId = cat.id
-5	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	LEFT JOIN content_order o ON o.itemId = c.id AND o.profileId = :profileId AND o.mediaType = 'LIVE' AND o.contextKey = :contextKey
+6	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	LEFT JOIN content_order o ON o.itemId = c.id AND o.profileId = :profileId AND o.mediaType = 'LIVE' AND o.contextKey = :contextKey
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	ORDER BY (CASE WHEN o.position IS NULL THEN 1 ELSE 0 END), o.position, c.name
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	ORDER BY (CASE WHEN o.position IS NULL THEN 1 ELSE 0 END), o.position, c.sortOrder, c.name
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	ORDER BY (CASE WHEN o.position IS NULL THEN 1 ELSE 0 END), o.position, c.sortOrder, c.name LIMIT :limit
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	ORDER BY (CASE WHEN o.position IS NULL THEN 1 ELSE 0 END), o.position, f.addedAt DESC
-1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	ORDER BY (CASE WHEN o.position IS NULL THEN 1 ELSE 0 END), o.position, f.addedAt DESC LIMIT :limit
+2	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	ORDER BY (CASE WHEN o.position IS NULL THEN 1 ELSE 0 END), o.position, f.addedAt DESC LIMIT :limit
 2	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	ORDER BY c.name ASC LIMIT :limit
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	ORDER BY h.watchedAt DESC LIMIT :limit
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	ORDER BY number ASC, name ASC LIMIT :limit
@@ -882,7 +882,7 @@
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT DISTINCT LOWER(TRIM(epgChannelId)) FROM channels
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT DISTINCT LOWER(TRIM(epgChannelId)) FROM channels WHERE epgChannelId IS NOT NULL AND epgChannelId != ''
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT DISTINCT epgChannelId FROM epg_programmes WHERE sourceId IN (:sourceIds)
-9	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT c.* FROM channels c
+10	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT c.* FROM channels c
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT c.* FROM channels c INNER JOIN favorites f ON f.itemId = c.id AND f.mediaType = 'LIVE'
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT c.* FROM channels c INNER JOIN watch_history h ON h.itemId = c.id AND h.mediaType = 'LIVE'
 2	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	SELECT c.*, cat.name AS categoryName FROM channels c
@@ -897,7 +897,7 @@
 3	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	WHERE c.categoryId = :categoryId
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	WHERE c.sourceId IN (:sourceIds)
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	WHERE c.sourceId IN (:sourceIds) AND c.name LIKE '%' || :query || '%'
-2	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	WHERE f.profileId = :profileId AND c.sourceId IN (:sourceIds)
+3	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	WHERE f.profileId = :profileId AND c.sourceId IN (:sourceIds)
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	WHERE f.profileId = :profileId AND c.sourceId IN (:sourceIds) AND c.name LIKE '%' || :query || '%' ORDER BY f.addedAt DESC
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	WHERE f.profileId = :profileId AND f.mediaType = 'LIVE' AND c.sourceId IN (:sourceIds)
 1	room-schema	core/src/main/java/tv/own/owntv/core/database/dao/ChannelDao.kt	WHERE f.profileId = :profileId ORDER BY LOWER(c.name) ASC, c.id ASC
@@ -1816,6 +1816,7 @@
 2	uri	core/src/main/java/tv/own/owntv/core/launcher/LauncherDeepLink.kt	seriesRemoteId
 2	uri	core/src/main/java/tv/own/owntv/core/launcher/LauncherDeepLink.kt	seriesSourceId
 4	uri	core/src/main/java/tv/own/owntv/core/launcher/LauncherDeepLink.kt	sourceId
+1	compiler	core/src/main/java/tv/own/owntv/core/launcher/LauncherIntegrationRepository.kt	The Android TV row now shows favorite live channels; use refreshFavoriteLive.
 1	technical	core/src/main/java/tv/own/owntv/core/launcher/LauncherRecommendationPlanner.kt	${episode.seasonNumber}-${episode.episodeNumber}
 1	technical	core/src/main/java/tv/own/owntv/core/launcher/LauncherRecommendationPlanner.kt	SHA-256
 1	technical	core/src/main/java/tv/own/owntv/core/launcher/LauncherRecommendationPlanner.kt	episode:${show.sourceId}:${show.remoteId ?: show.name}:${episode.remoteId ?: "${episode.seasonNumber}-${episode.episodeNumber}"}
@@ -3511,28 +3512,29 @@
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	OwnTVHome
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	RestrictedApi
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	SHA-256
+1	compiler	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	The Android TV row now shows favorite live channels; use refreshFavoriteLive.
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	android.resource://${context.packageName}/$resId
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	clearProfile profile=$profileId done
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	clearProfile profile=$profileId rows=${rows.size}
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	eligible=$eligible complete=$isComplete currentIndex=$currentIndex force=$force
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	eligible=$eligible force=$force
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureRecentLiveChannel existing row missing from platform profile=$profileId providerId=${existing.providerProgramId}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureRecentLiveChannel publish failed profile=$profileId result=$channelId
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureRecentLiveChannel publish profile=$profileId ownChannelCount=$ownChannelCount allowBrowsable=$allowBrowsableRequest result=$channelId
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureRecentLiveChannel read failed profile=$profileId channelId=${existing.providerProgramId}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureRecentLiveChannel requestBrowsable profile=$profileId channelId=${existing.providerProgramId}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureRecentLiveChannel reuse profile=$profileId channelId=${existing.providerProgramId}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureRecentLiveChannel stored profile=$profileId channelId=$channelId row=${row.describe()}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureRecentLiveChannel update profile=$profileId channelId=${existing.providerProgramId} allowBrowsable=$allowBrowsableRequest
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureFavoriteLiveChannel existing row missing from platform profile=$profileId providerId=${existing.providerProgramId}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureFavoriteLiveChannel publish failed profile=$profileId result=$channelId
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureFavoriteLiveChannel publish profile=$profileId ownChannelCount=$ownChannelCount allowBrowsable=$allowBrowsableRequest result=$channelId
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureFavoriteLiveChannel read failed profile=$profileId channelId=${existing.providerProgramId}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureFavoriteLiveChannel requestBrowsable profile=$profileId channelId=${existing.providerProgramId}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureFavoriteLiveChannel reuse profile=$profileId channelId=${existing.providerProgramId}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureFavoriteLiveChannel stored profile=$profileId channelId=$channelId row=${row.describe()}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	ensureFavoriteLiveChannel update profile=$profileId channelId=${existing.providerProgramId} allowBrowsable=$allowBrowsableRequest
 1	url	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	http://
 1	url	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	https://
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	owntv:${surface.name.lowercase()}:${sha256Hex("$profileId|${mediaType.name}|$stableKey")}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistRecentLive insert failed profile=${row.profileId} row=${row.describe()}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistRecentLive insert profile=${row.profileId} programId=$providerId row=${row.describe()}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistRecentLive insert returned null profile=${row.profileId} row=${row.describe()}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistRecentLive profile=$profileId channelId=$channelId index=$index label=$label row=${row.describe()}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistRecentLive update failed profile=${row.profileId} programId=$existing row=${row.describe()}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistRecentLive update profile=${row.profileId} programId=$existing updated=$updated row=${row.describe()}
+1	technical	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	owntv:${surface.name.lowercase()}:${sha256Hex("$profileId|${mediaType.name}|$stableKey")}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistFavoriteLive insert failed profile=${row.profileId} row=${row.describe()}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistFavoriteLive insert profile=${row.profileId} programId=$providerId row=${row.describe()}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistFavoriteLive insert returned null profile=${row.profileId} row=${row.describe()}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistFavoriteLive profile=$profileId channelId=$channelId index=$index label=$label row=${row.describe()}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistFavoriteLive update failed profile=${row.profileId} programId=$existing row=${row.describe()}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistFavoriteLive update profile=${row.profileId} programId=$existing updated=$updated row=${row.describe()}
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistWatchNext episode profile=${row.profileId} row=${row.describe()} watchNextType=$watchNextType
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistWatchNext insert failed profile=${row.profileId} row=${row.describe()}
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	persistWatchNext insert profile=${row.profileId} programId=$providerId row=${row.describe()}
@@ -3545,15 +3547,14 @@
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	publishEpisodeProgress skip profile=$profileId enabled=$enabled episodeId=$episodeId positionMs=$positionMs durationMs=$durationMs
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	publishMovieProgress profile=$profileId movieId=$movieId positionMs=$positionMs durationMs=$durationMs
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	publishMovieProgress skip profile=$profileId enabled=$enabled movieId=$movieId positionMs=$positionMs durationMs=$durationMs
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	recent-live
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshFavoriteLive profile=$profileId allowBrowsable=$allowBrowsableRequest
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshFavoriteLive profile=$profileId channelId=$channelId favorites=${favoriteChannels.size}
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshFavoriteLive profile=$profileId updated channel bookkeeping
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshFavoriteLive skip profile=$profileId enabled=$enabled allowBrowsable=$allowBrowsableRequest
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshProfile profile=$profileId clearing platform rows because Android TV home is disabled
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshProfile profile=$profileId done
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshProfile profile=$profileId enabled=$enabled allowBrowsable=$allowBrowsableRequest
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshProfile profile=$profileId publishing Watch Next and Recent Live rows
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshRecentLive profile=$profileId allowBrowsable=$allowBrowsableRequest
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshRecentLive profile=$profileId channelId=$channelId recent=${recentChannels.size}
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshRecentLive profile=$profileId updated channel bookkeeping
-1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshRecentLive skip profile=$profileId enabled=$enabled allowBrowsable=$allowBrowsableRequest
+1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshProfile profile=$profileId publishing Watch Next and Favorite Live rows
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshWatchNext deleting stale ${row.describe()}
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	refreshWatchNext profile=$profileId desired=${desired.size} existing=${existing.size}
 1	log	core/src/main/java/tv/own/owntv/core/tv/TvHomeRepository.kt	row=${row.describe()}

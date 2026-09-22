@@ -31,6 +31,7 @@ import tv.own.owntv.core.database.dao.ProgressDao
 import tv.own.owntv.core.database.dao.SeriesDao
 import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.database.dao.TvProviderProgramDao
+import tv.own.owntv.core.database.entity.ContentOrderEntity
 import tv.own.owntv.core.database.entity.EpisodeEntity
 import tv.own.owntv.core.database.entity.MovieEntity
 import tv.own.owntv.core.database.entity.SeriesEntity
@@ -97,9 +98,9 @@ class TvHomeRepository(
             return@withContext
         }
         mutex.withLock {
-            logD("refreshProfile profile=$profileId publishing Watch Next and Recent Live rows")
+            logD("refreshProfile profile=$profileId publishing Watch Next and Favorite Live rows")
             refreshWatchNextLocked(profileId)
-            refreshRecentLiveLocked(profileId, allowBrowsableRequest)
+            refreshFavoriteLiveLocked(profileId, allowBrowsableRequest)
         }
         logD("refreshProfile profile=$profileId done")
     }
@@ -134,15 +135,20 @@ class TvHomeRepository(
         mutex.withLock { syncEpisode(profileId, episodeId, positionMs, durationMs) }
     }
 
-    suspend fun refreshRecentLive(profileId: Long, allowBrowsableRequest: Boolean = false) = withContext(Dispatchers.IO) {
+    suspend fun refreshFavoriteLive(profileId: Long, allowBrowsableRequest: Boolean = false) = withContext(Dispatchers.IO) {
         val enabled = settings.androidTvHomeEnabled.first()
         if (profileId < 0 || !enabled) {
-            logD("refreshRecentLive skip profile=$profileId enabled=$enabled allowBrowsable=$allowBrowsableRequest")
+            logD("refreshFavoriteLive skip profile=$profileId enabled=$enabled allowBrowsable=$allowBrowsableRequest")
             return@withContext
         }
-        logD("refreshRecentLive profile=$profileId allowBrowsable=$allowBrowsableRequest")
-        mutex.withLock { refreshRecentLiveLocked(profileId, allowBrowsableRequest) }
+        logD("refreshFavoriteLive profile=$profileId allowBrowsable=$allowBrowsableRequest")
+        mutex.withLock { refreshFavoriteLiveLocked(profileId, allowBrowsableRequest) }
     }
+
+    /** Compatibility entry point for hosts that still request the former Recent Live row. */
+    @Deprecated("The Android TV row now shows favorite live channels; use refreshFavoriteLive.")
+    suspend fun refreshRecentLive(profileId: Long, allowBrowsableRequest: Boolean = false) =
+        refreshFavoriteLive(profileId, allowBrowsableRequest)
 
     private suspend fun refreshWatchNextLocked(profileId: Long) {
         val desired = launcherPlanner.buildContinuationItems(profileId)
@@ -173,9 +179,9 @@ class TvHomeRepository(
         }
     }
 
-    private suspend fun refreshRecentLiveLocked(profileId: Long, allowBrowsableRequest: Boolean) {
+    private suspend fun refreshFavoriteLiveLocked(profileId: Long, allowBrowsableRequest: Boolean) {
         val customizations = customize.observe(profileId, MediaType.LIVE).first()
-        val channelRow = ensureRecentLiveChannel(profileId, allowBrowsableRequest)
+        val channelRow = ensureFavoriteLiveChannel(profileId, allowBrowsableRequest)
         val channelId = channelRow.providerProgramId ?: return
         val now = System.currentTimeMillis()
         if (now - channelRow.lastPublishedAt < RECENT_LIVE_REFRESH_INTERVAL_MS) return
@@ -184,8 +190,12 @@ class TvHomeRepository(
             .filter { it.syncLive }
             .map { it.id }
             .toSet()
-        val recentChannels = channelDao.recentlyWatched(profileId, RECENT_LIVE_MAX_ITEMS * 2).first()
-            .filter { it.sourceId in liveSourceIds }
+        val favoriteChannels = channelDao.launcherFavorites(
+            profileId = profileId,
+            contextKey = ContentOrderEntity.FAV_CONTEXT,
+            sourceIds = liveSourceIds.toList(),
+            limit = RECENT_LIVE_MAX_ITEMS * 2,
+        )
             .filter { !isHidden(customizations, it) }
             .filter { launcherPlanner.isCategoryVisibleToProfile(profileId, it.categoryId) }
             .distinctBy { it.id }
@@ -193,11 +203,11 @@ class TvHomeRepository(
         val existingRows = tvProviderProgramDao.getForSurface(profileId, TvProviderSurface.RECENT_LIVE)
             .filter { it.groupId != RECENT_LIVE_CHANNEL_GROUP_ID }
         logD(
-            "refreshRecentLive profile=$profileId channelId=$channelId recent=${recentChannels.size} " +
+            "refreshFavoriteLive profile=$profileId channelId=$channelId favorites=${favoriteChannels.size} " +
                 "sourceCount=${liveSourceIds.size} existing=${existingRows.size}",
         )
 
-        val desiredKeys = recentChannels.map { launcherPlanner.liveStableKey(it) }.toSet()
+        val desiredKeys = favoriteChannels.map { launcherPlanner.liveStableKey(it) }.toSet()
 
         for (row in existingRows) {
             if (row.groupId !in desiredKeys) {
@@ -206,7 +216,7 @@ class TvHomeRepository(
             }
         }
 
-        recentChannels.forEachIndexed { index, channel ->
+        favoriteChannels.forEachIndexed { index, channel ->
             val stableKey = launcherPlanner.liveStableKey(channel)
             val row = tvProviderProgramDao.find(profileId, TvProviderSurface.RECENT_LIVE, MediaType.LIVE, stableKey)
                 ?: TvProviderProgramEntity(
@@ -216,11 +226,11 @@ class TvHomeRepository(
                     groupId = stableKey,
                     targetItemId = channel.id,
                 )
-            publishRecentLiveProgram(profileId, channelId, channel, row, index, customizations)
+            publishFavoriteLiveProgram(profileId, channelId, channel, row, index, customizations)
         }
 
         tvProviderProgramDao.upsert(channelRow.copy(lastPublishedAt = now, lastEngagementAt = now))
-        logD("refreshRecentLive profile=$profileId updated channel bookkeeping")
+        logD("refreshFavoriteLive profile=$profileId updated channel bookkeeping")
     }
 
     private suspend fun syncMovie(profileId: Long, movieId: Long, positionMs: Long, durationMs: Long, force: Boolean = false) {
@@ -454,32 +464,32 @@ class TvHomeRepository(
         }
     }
 
-    private suspend fun ensureRecentLiveChannel(profileId: Long, allowBrowsableRequest: Boolean): TvProviderProgramEntity {
+    private suspend fun ensureFavoriteLiveChannel(profileId: Long, allowBrowsableRequest: Boolean): TvProviderProgramEntity {
         val existing = tvProviderProgramDao.find(profileId, TvProviderSurface.RECENT_LIVE, MediaType.LIVE, RECENT_LIVE_CHANNEL_GROUP_ID)
         val now = System.currentTimeMillis()
         if (existing?.providerProgramId != null) {
             val current = runCatching { channelHelper.getPreviewChannel(existing.providerProgramId) }
                 .getOrElse { t ->
-                    logW("ensureRecentLiveChannel read failed profile=$profileId channelId=${existing.providerProgramId}", t)
+                    logW("ensureFavoriteLiveChannel read failed profile=$profileId channelId=${existing.providerProgramId}", t)
                     null
                 }
             if (current != null) {
-                val desired = buildRecentLiveChannel(profileId)
+                val desired = buildFavoriteLiveChannel(profileId)
                 if (current.hasAnyUpdatedValues(desired)) {
-                    logD("ensureRecentLiveChannel update profile=$profileId channelId=${existing.providerProgramId} allowBrowsable=$allowBrowsableRequest")
+                    logD("ensureFavoriteLiveChannel update profile=$profileId channelId=${existing.providerProgramId} allowBrowsable=$allowBrowsableRequest")
                     runCatching { channelHelper.updatePreviewChannel(existing.providerProgramId, desired) }
                 }
                 if (allowBrowsableRequest && !current.isBrowsable()) {
-                    logD("ensureRecentLiveChannel requestBrowsable profile=$profileId channelId=${existing.providerProgramId}")
+                    logD("ensureFavoriteLiveChannel requestBrowsable profile=$profileId channelId=${existing.providerProgramId}")
                     runCatching { TvContractCompat.requestChannelBrowsable(context, existing.providerProgramId) }
                 }
-                logD("ensureRecentLiveChannel reuse profile=$profileId channelId=${existing.providerProgramId}")
+                logD("ensureFavoriteLiveChannel reuse profile=$profileId channelId=${existing.providerProgramId}")
                 return existing
             }
-            logW("ensureRecentLiveChannel existing row missing from platform profile=$profileId providerId=${existing.providerProgramId}")
+            logW("ensureFavoriteLiveChannel existing row missing from platform profile=$profileId providerId=${existing.providerProgramId}")
         }
 
-        val channel = buildRecentLiveChannel(profileId)
+        val channel = buildFavoriteLiveChannel(profileId)
         val ownChannelCount = runCatching { channelHelper.getAllChannels().count { it.packageName == context.packageName } }
             .getOrDefault(0)
         val channelId = runCatching {
@@ -492,9 +502,9 @@ class TvHomeRepository(
                 published
             }
         }.getOrElse { -1L }
-        logD("ensureRecentLiveChannel publish profile=$profileId ownChannelCount=$ownChannelCount allowBrowsable=$allowBrowsableRequest result=$channelId")
+        logD("ensureFavoriteLiveChannel publish profile=$profileId ownChannelCount=$ownChannelCount allowBrowsable=$allowBrowsableRequest result=$channelId")
         if (channelId <= 0L) {
-            logW("ensureRecentLiveChannel publish failed profile=$profileId result=$channelId")
+            logW("ensureFavoriteLiveChannel publish failed profile=$profileId result=$channelId")
             return existing ?: TvProviderProgramEntity(
                 profileId = profileId,
                 surface = TvProviderSurface.RECENT_LIVE,
@@ -523,12 +533,12 @@ class TvHomeRepository(
             lastEngagementAt = now,
             lastPublishedAt = 0L,
         )
-        logD("ensureRecentLiveChannel stored profile=$profileId channelId=$channelId row=${row.describe()}")
+        logD("ensureFavoriteLiveChannel stored profile=$profileId channelId=$channelId row=${row.describe()}")
         tvProviderProgramDao.upsert(row)
         return row
     }
 
-    private suspend fun publishRecentLiveProgram(
+    private suspend fun publishFavoriteLiveProgram(
         profileId: Long,
         channelId: Long,
         channel: tv.own.owntv.core.database.entity.ChannelEntity,
@@ -552,41 +562,41 @@ class TvHomeRepository(
             .apply { if (fittedArt != null) setPosterArtUri(fittedArt) }
             .apply { if (art != null) setPosterArtAspectRatio(TvContractCompat.PreviewProgramColumns.ASPECT_RATIO_16_9) }
             .build()
-        logD("persistRecentLive profile=$profileId channelId=$channelId index=$index label=$label row=${row.describe()}")
-        persistRecentLiveProgram(row, program, stableKey)
+        logD("persistFavoriteLive profile=$profileId channelId=$channelId index=$index label=$label row=${row.describe()}")
+        persistFavoriteLiveProgram(row, program, stableKey)
     }
 
-    private suspend fun persistRecentLiveProgram(row: TvProviderProgramEntity, program: PreviewProgram, stableKey: Long) {
+    private suspend fun persistFavoriteLiveProgram(row: TvProviderProgramEntity, program: PreviewProgram, stableKey: Long) {
         val existing = row.providerProgramId
         if (existing != null) {
             val updated = runCatching {
                 resolver.update(TvContractCompat.buildPreviewProgramUri(existing), program.toContentValues(), null, null)
             }.onFailure { t ->
-                logW("persistRecentLive update failed profile=${row.profileId} programId=$existing row=${row.describe()}", t)
+                logW("persistFavoriteLive update failed profile=${row.profileId} programId=$existing row=${row.describe()}", t)
             }.getOrNull() ?: return
-            logD("persistRecentLive update profile=${row.profileId} programId=$existing updated=$updated row=${row.describe()}")
+            logD("persistFavoriteLive update profile=${row.profileId} programId=$existing updated=$updated row=${row.describe()}")
             if (updated == 0) {
-                insertRecentLiveProgram(row, program, stableKey)
+                insertFavoriteLiveProgram(row, program, stableKey)
             } else {
                 tvProviderProgramDao.upsert(row.copy(lastPublishedAt = System.currentTimeMillis(), lastEngagementAt = System.currentTimeMillis(), groupId = stableKey))
             }
         } else {
-            insertRecentLiveProgram(row, program, stableKey)
+            insertFavoriteLiveProgram(row, program, stableKey)
         }
     }
 
-    private suspend fun insertRecentLiveProgram(row: TvProviderProgramEntity, program: PreviewProgram, stableKey: Long) {
+    private suspend fun insertFavoriteLiveProgram(row: TvProviderProgramEntity, program: PreviewProgram, stableKey: Long) {
         val uri = runCatching { resolver.insert(TvContractCompat.PreviewPrograms.CONTENT_URI, program.toContentValues()) }
             .onFailure { t ->
-                logW("persistRecentLive insert failed profile=${row.profileId} row=${row.describe()}", t)
+                logW("persistFavoriteLive insert failed profile=${row.profileId} row=${row.describe()}", t)
             }
             .getOrNull()
         if (uri == null) {
-            logW("persistRecentLive insert returned null profile=${row.profileId} row=${row.describe()}")
+            logW("persistFavoriteLive insert returned null profile=${row.profileId} row=${row.describe()}")
             return
         }
         val providerId = ContentUris.parseId(uri)
-        logD("persistRecentLive insert profile=${row.profileId} programId=$providerId row=${row.describe()}")
+        logD("persistFavoriteLive insert profile=${row.profileId} programId=$providerId row=${row.describe()}")
         tvProviderProgramDao.upsert(
             row.copy(
                 providerProgramId = providerId,
@@ -597,11 +607,11 @@ class TvHomeRepository(
         )
     }
 
-    private fun buildRecentLiveChannel(profileId: Long): PreviewChannel {
+    private fun buildFavoriteLiveChannel(profileId: Long): PreviewChannel {
         val renderContext = renderContext()
         return PreviewChannel.Builder()
-            .setDisplayName(renderContext.getString(R.string.launcher_recent_live_title))
-            .setDescription(renderContext.getString(R.string.launcher_recent_live_description))
+            .setDisplayName(renderContext.getString(R.string.home_row_favorite_channels))
+            .setDescription(renderContext.getString(R.string.home_row_favorite_description))
             .setAppLinkIntentUri(LauncherDeepLink.OpenLiveSection.toUri())
             .setInternalProviderId(platformInternalId(TvProviderSurface.RECENT_LIVE, profileId, MediaType.LIVE, RECENT_LIVE_CHANNEL_STABLE_KEY))
             .setLogo(resourceUri(R.drawable.tv_banner))

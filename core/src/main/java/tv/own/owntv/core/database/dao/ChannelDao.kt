@@ -302,6 +302,19 @@ interface ChannelDao {
     )
     suspend fun snapshotFavoritesManual(profileId: Long, contextKey: String, sourceIds: List<Long>, limit: Int): List<ChannelEntity>
 
+    /**
+     * Bounded Favorites snapshot for Android TV Home. It follows the same manual ordering as the
+     * Live TV Favorites rail and is restricted to the profile's active live sources.
+     */
+    @Query(
+        "SELECT c.* FROM channels c " +
+            "INNER JOIN favorites f ON f.itemId = c.id AND f.mediaType = 'LIVE' " +
+            "LEFT JOIN content_order o ON o.itemId = c.id AND o.profileId = :profileId AND o.mediaType = 'LIVE' AND o.contextKey = :contextKey " +
+            "WHERE f.profileId = :profileId AND c.sourceId IN (:sourceIds) " +
+            "ORDER BY (CASE WHEN o.position IS NULL THEN 1 ELSE 0 END), o.position, f.addedAt DESC LIMIT :limit",
+    )
+    suspend fun launcherFavorites(profileId: Long, contextKey: String, sourceIds: List<Long>, limit: Int): List<ChannelEntity>
+
     // --- Counts ---
     @Query("SELECT COUNT(*) FROM channels WHERE categoryId = :categoryId")
     fun countByCategory(categoryId: Long): Flow<Int>
